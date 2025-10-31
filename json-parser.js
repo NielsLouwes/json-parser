@@ -6,6 +6,13 @@ const SeparatorLexicalToken = {
     '}': 'RIGHT_BRACE'
 }
 
+const WhiteSpaceToken = { 
+    " ": 'BLANK_SPACE',
+    "\t": 'TAB',
+    "\n": 'NEW_LINE',
+    "\r": 'CARRIAGE_RETURN'
+}
+
 const filePath = argv[2]
 console.log('argv', argv[2])
 
@@ -29,17 +36,26 @@ const data = getTextFromFile()
 // step 1 we need the lexer to cehck for { } - an empty object in JSON notation, which is valid
 
 const lexer = () => {
-    if (data.length < 2) return 0;
+    if (data.length < 2) process.exit(1);
     let tokens = []
 
     const split = data.split('');
     
     split.forEach((char) =>  {
+      if (WhiteSpaceToken[char]) {
+        return; 
+      }
       if (char === '{' || char === '}') {
         tokens.push(SeparatorLexicalToken[char])
+      } else {
+        console.error('Invalid JSON');
+        process.exit(1);
       }
     })
     console.log("tokens", tokens)
+    if (tokens.length !== 2) {
+        process.exit(1);
+    }
     return tokens;
 }
 
