@@ -3,7 +3,8 @@ const { argv } = require('node:process')
 
 const SeparatorLexicalToken = {
     '{': 'LEFT_BRACE',
-    '}': 'RIGHT_BRACE'
+    '}': 'RIGHT_BRACE',
+    ';': 'SEMI_COLON'
 }
 
 const WhiteSpaceToken = { 
@@ -12,6 +13,13 @@ const WhiteSpaceToken = {
     "\n": 'NEW_LINE',
     "\r": 'CARRIAGE_RETURN'
 }
+
+const PunctuationTokens = {
+    ':' : 'COLON',
+    ',': 'COMMA'
+}
+
+
 
 const filePath = argv[2]
 console.log('argv', argv[2])
@@ -37,42 +45,59 @@ const data = getTextFromFile()
 
 const lexer = () => {
     if (data.length < 2) process.exit(1);
-    let tokens = []
+    let tokens = [];
+    let insideString = false;
+    let currentString = ''
 
     const split = data.split('');
-    
-    split.forEach((char) =>  {
-      if (WhiteSpaceToken[char]) {
-        return; 
-      }
-      if (char === '{' || char === '}') {
-        tokens.push(SeparatorLexicalToken[char])
-      } else {
-        console.error('Invalid JSON');
-        process.exit(1);
-      }
-    })
-    console.log("tokens", tokens)
-    if (tokens.length !== 2) {
-        process.exit(1);
+
+    for (let i = 0; i <split.length; i++) {
+        const char = split[i];
+
+        if (insideString) {
+            // collecting chars to form a string mode
+            if (char === '"') {
+                // found closing quote
+                tokens.push({type: 'STRING', value: currentString});
+                currentString = '';
+                insideString = false;
+            } else {
+                // until final string char is reaxched we collect the chars to for currentString = 'key'
+                currentString += char
+            }
+        } else {
+            // regular token collection mode
+            if (char === '"') {
+                insideString = true;
+                currentString = '';
+            } else if (WhiteSpaceToken[char]) {
+                continue
+            } else if (char === '{' || char === '}') {
+                tokens.push(SeparatorLexicalToken[char])
+            } else if (char === ':' || char === ',') {
+                tokens.push(PunctuationTokens[char])
+            } else {
+                console.error('Invalid JSON');
+                process.exit(1);
+            }
+        }
     }
+    
     return tokens;
 }
 
 const tokens = lexer();
 
-// step 2 -parse then checks if index 0 = left brace and index LAST is right brace and for length of 2
-
 const parser = () => {
- if (tokens[0] !== 'LEFT_BRACE' && tokens[tokens.length - 1] !== 'RIGHT_BRACE') {
-    console.error('Invalid JSON');
-    process.exit(1);
- } 
+    if (tokens[0] !== 'LEFT_BRACE' && tokens[tokens.length - 1] !== 'RIGHT_BRACE') {
+        console.error('Invalid JSON');
+        process.exit(1);
+    } 
 
-if (tokens[0] === 'LEFT_BRACE' && tokens[tokens.length - 1] == 'RIGHT_BRACE') {
-    console.log('Valid JSON');
-    process.exit(0);
-}
+    if (tokens[0] === 'LEFT_BRACE' && tokens[tokens.length - 1] == 'RIGHT_BRACE') {
+        console.log('Valid JSON');
+        process.exit(0);
+    }
 }
 
 parser()
